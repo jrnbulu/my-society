@@ -1,0 +1,15 @@
+{
+  "name": "my-society",
+  "displayName": "MySociety",
+  "version": "1.0.0",
+  "description": "Community Management Application for Android & iOS",
+  "author": "Your Name",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jrnbulu/my-society.git"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

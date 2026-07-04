@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+*.lock
+yarn.lock
+package-lock.json
+
+# Build folders
+/dist
+/build
+
+# React Native
+.gradle
+local.properties
+android/.gradle/
+android/build/
+android/.idea/
+android/*.iml
+ios/Pods
+ios/Podfile.lock
+ios/*.xcworkspace/
+ios/*.xcodeproj/xcuserdata
+ios/*.xcodeproj/project.xcworkspace/xcuserdata
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log
+npm-debug.log*
+yarn-debug.log
+yarn-error.log
+lerna-debug.log
+
+# Temporary files
+.tmp/
+temp/
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Firebase
+.firebase/
+.firebaserc
+
+# Testing
+coverage/
+.nyc_output/

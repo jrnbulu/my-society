@@ -1,0 +1,132 @@
+/**
+ * Firestore Security Rules
+ * 
+ * Deploy these rules to Firebase Firestore for production:
+ * 
+ * Steps:
+ * 1. Go to Firebase Console > Firestore Database > Rules
+ * 2. Replace the existing rules with the content below
+ * 3. Publish the rules
+ */
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User authentication check function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Owner check function
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Admin check function
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Same society check function
+    function samesociedey(societyId) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.societyId == societyId;
+    }
+    
+    // ============================================
+    // Users Collection Rules
+    // ============================================
+    match /users/{userId} {
+      // Read: Users can read their own profile or admins can read any
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Create: Any authenticated user can create their profile
+      allow create: if isAuthenticated() && isOwner(userId);
+      
+      // Update: Users can update their own profile or admin can update any
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Delete: Only admin can delete users
+      allow delete: if isAdmin();
+      
+      // Subcollections
+      match /preferences/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // ============================================
+    // Societies Collection Rules
+    // ============================================
+    match /societies/{societyId} {
+      // Read: Members of the society can read
+      allow read: if isAuthenticated() && 
+        samesociedey(societyId);
+      
+      // Create: Admins only
+      allow create: if isAdmin();
+      
+      // Update: Admins and society admins
+      allow update: if isAdmin();
+      
+      // Delete: Admins only
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // Owners Collection Rules
+    // ============================================
+    match /owners/{ownerId} {
+      allow read: if isAuthenticated() && 
+        samesociedey(resource.data.societyId);
+      
+      allow create, update, delete: if isAdmin() ||
+        (isAuthenticated() && isOwner(ownerId));
+    }
+    
+    // ============================================
+    // Tenants Collection Rules
+    // ============================================
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated() && 
+        samesociedey(resource.data.societyId);
+      
+      allow create, update: if isAdmin();
+      
+      allow delete: if isAdmin();
+    }
+    
+    // ============================================
+    // Messages Collection Rules
+    // ============================================
+    match /messages/{messageId} {
+      allow read: if isAuthenticated() && 
+        samesociedey(resource.data.societyId);
+      
+      allow create: if isAuthenticated();
+      
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ============================================
+    // Complaints Collection Rules
+    // ============================================
+    match /complaints/{complaintId} {
+      allow read: if isAuthenticated() && 
+        (samesociedey(resource.data.societyId) || 
+         isOwner(resource.data.userId));
+      
+      allow create: if isAuthenticated();
+      
+      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ============================================
+    // Default Deny
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
