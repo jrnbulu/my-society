@@ -1,70 +1,101 @@
-# My Society App – Complete Setup & Deployment Guide
+# My Society App – Complete Firebase Setup & Firestore Seed Guide
 
 ## Prerequisites
 
 - Node.js 20+
 - Firebase CLI: `npm install -g firebase-tools`
 - A Google account
+- A Firebase project with billing enabled if you plan to deploy Cloud Functions
 
 ---
 
-## Step 1: Firebase Project Setup
+## Step 1: Create and Configure Firebase Project
 
-### 1.1 Create Project
+### 1.1 Create the project
 
 1. Go to [console.firebase.google.com](https://console.firebase.google.com)
-2. Click **Add project** → Enter name (e.g. `my-society`)
-3. Enable Google Analytics (optional)
-4. Click **Create project**
+2. Click **Add project**
+3. Enter a project name such as `my-society`
+4. Enable Google Analytics if you need it
+5. Click **Create project**
 
-### 1.2 Enable Authentication (Phone OTP)
+### 1.2 Register the web app
 
-1. Firebase Console → **Authentication** → **Sign-in method**
+1. Open **Project settings**
+2. In **Your apps**, click **Add app** → **Web**
+3. Register the app
+4. Copy the generated Firebase config for Step 4
+
+### 1.3 Enable Authentication
+
+1. Open **Authentication** → **Sign-in method**
 2. Enable **Phone**
-3. Add your domain to **Authorized domains** (e.g. `my-society.web.app`)
-4. For development, add `localhost`
+3. Add `localhost` to **Authorized domains** for development
+4. Add your production domain later after hosting is deployed
 
-### 1.3 Enable Firestore
+### 1.4 Enable Firestore
 
-1. Firebase Console → **Firestore Database** → **Create database**
-2. Select **Production mode** (rules are defined in `firestore.rules`)
-3. Choose region: **asia-south1 (Mumbai)**
+1. Open **Firestore Database** → **Create database**
+2. Select **Production mode**
+3. Choose your preferred region
+4. Finish the setup
 
-### 1.4 Enable Cloud Functions
+### 1.5 Enable Storage
 
-1. Firebase Console → **Functions** → **Get started**
-2. Upgrade to **Blaze plan** (required for external HTTP calls from Functions)
+1. Open **Storage** → **Get started**
+2. Choose the same region as Firestore if possible
+3. Complete the default setup
 
-### 1.5 Enable Firebase Hosting
+### 1.6 Enable Cloud Functions
 
-1. Firebase Console → **Hosting** → **Get started**
-2. Follow the CLI setup steps below
+1. Open **Functions** → **Get started**
+2. Upgrade to the **Blaze** plan if you need deployed functions
 
-### 1.6 Enable Cloud Messaging (FCM)
+### 1.7 Enable Cloud Messaging
 
-1. Firebase Console → **Project Settings** → **Cloud Messaging**
-2. Note your **Server key** and **Sender ID**
-3. Under **Web configuration**, generate a **Web Push certificate** (VAPID key)
+1. Open **Project settings** → **Cloud Messaging**
+2. Note the **Sender ID**
+3. Generate a **Web Push certificate**
 4. Save the VAPID key for `VITE_FIREBASE_VAPID_KEY`
 
 ---
 
-## Step 2: Get Firebase Config
+## Step 2: Install Dependencies
 
-1. Firebase Console → **Project Settings** → **Your apps**
-2. Click **Add app** → **Web** → Register app
-3. Copy the `firebaseConfig` object
-4. Use these values in your `.env` file (see Step 3)
+```bash
+cd /home/runner/work/my-society/my-society
+npm install
+cd functions
+npm install
+cd ..
+```
 
 ---
 
-## Step 3: Configure Environment Variables
+## Step 3: Login to Firebase CLI
 
 ```bash
+firebase login
+cd /home/runner/work/my-society/my-society
+firebase use --add
+```
+
+When prompted:
+
+1. Select the Firebase project you created
+2. Save it with the alias `default`
+
+---
+
+## Step 4: Configure Frontend Environment Variables
+
+```bash
+cd /home/runner/work/my-society/my-society
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your Firebase app config:
+
 ```env
 VITE_FIREBASE_API_KEY=AIzaSy...
 VITE_FIREBASE_AUTH_DOMAIN=my-society.firebaseapp.com
@@ -79,191 +110,164 @@ VITE_UPI_VPA=society@upi
 
 ---
 
-## Step 4: Update FCM Service Worker
+## Step 5: Update the FCM Service Worker
 
-Edit `public/firebase-messaging-sw.js` – replace the config values with your actual Firebase config:
+Edit `public/firebase-messaging-sw.js` and replace the placeholder Firebase config values with your real project values.
 
-```js
-firebase.initializeApp({
-  apiKey: "YOUR_API_KEY",
-  authDomain: "my-society.firebaseapp.com",
-  projectId: "my-society",
-  storageBucket: "my-society.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef",
-});
+---
+
+## Step 6: Configure Admin Credentials for the Seed Script
+
+The Firestore seed script uses `firebase-admin` with `applicationDefault()` credentials.
+
+### Option A: Use application default login
+
+```bash
+gcloud auth application-default login
+```
+
+### Option B: Use a service account JSON file
+
+1. Open **Project settings** → **Service accounts**
+2. Click **Generate new private key**
+3. Save the JSON file outside this repository
+4. Export the path before running the script:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/service-account.json"
 ```
 
 ---
 
-## Step 5: Firebase CLI Login & Init
+## Step 7: Deploy Firestore Rules and Indexes
 
 ```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Login
-firebase login
-
-# Set project
-firebase use --add
-# Select your project → alias: default
-
-# Or edit .firebaserc manually
-```
-
----
-
-## Step 6: Deploy Firestore Rules & Indexes
-
-```bash
+cd /home/runner/work/my-society/my-society
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
 ---
 
-## Step 7: Configure Cloud Functions
+## Step 8: Seed Firestore Collections
 
-### 7.1 Set Function Environment Variables
+The seed script is located at:
+
+`/home/runner/work/my-society/my-society/functions/scripts/seed-firestore.js`
+
+Run it with:
 
 ```bash
-# MSG91 for SMS
-firebase functions:secrets:set MSG91_API_KEY
+cd /home/runner/work/my-society/my-society/functions
+npm run seed:firestore
+```
 
-# SendGrid for Email (optional)
+This creates sample data in these collections:
+
+- `users`
+- `flats`
+- `bills`
+- `payments`
+- `utilities`
+- `expenses`
+- `salaries`
+- `meetings`
+
+Sample seeded records include:
+
+- `admin1`, `owner1`, `tenant1`, `caretaker1`
+- `flat_101`
+- `bill_2026_04_flat_101`
+- `payment_001`
+- utility, expense, salary, and meeting sample documents
+
+---
+
+## Step 9: Verify Seeded Firestore Data
+
+1. Open **Firestore Database** in Firebase Console
+2. Confirm the collections listed above were created
+3. Open `users/admin1` and confirm `role` is `ADMIN`
+4. Open `bills/bill_2026_04_flat_101` and confirm `paymentIds` contains `payment_001`
+
+---
+
+## Step 10: Deploy Cloud Functions
+
+### 10.1 Set function secrets if needed
+
+```bash
+firebase functions:secrets:set MSG91_API_KEY
 firebase functions:secrets:set SENDGRID_API_KEY
 ```
 
-### 7.2 Install Function Dependencies
+### 10.2 Deploy functions
 
 ```bash
-cd functions
-npm install
-cd ..
-```
-
-### 7.3 Deploy Functions
-
-```bash
+cd /home/runner/work/my-society/my-society
 firebase deploy --only functions
 ```
 
 ---
 
-## Step 8: Build & Deploy React App
+## Step 11: Build and Deploy the React App
 
 ```bash
-# Install dependencies
-npm install
-
-# Build
+cd /home/runner/work/my-society/my-society
 npm run build
-
-# Deploy to Firebase Hosting
 firebase deploy --only hosting
 ```
 
-Your app will be live at: `https://YOUR_PROJECT_ID.web.app`
+Your app will be live at:
+
+`https://YOUR_PROJECT_ID.web.app`
 
 ---
 
-## Step 9: Initial Data Seeding
+## Step 12: Example Minimal Firestore Rules
 
-After deploying, create the first admin user:
+If you want a minimal user-and-bills rule setup like the example schema, use:
 
-### 9.1 Login with your phone number
+```rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
 
-Open the app → enter your phone → verify OTP.
+    match /bills/{billId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
 
-### 9.2 Manually set admin role in Firestore
-
-Firebase Console → Firestore → `users` collection → find your UID document → Edit:
-
-```json
-{
-  "role": "admin",
-  "societyId": "YOUR_SOCIETY_ID"
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "ADMIN";
+    }
+  }
 }
 ```
 
-### 9.3 Create Society document
+Deploy the rules after updating `firestore.rules`:
 
-Firestore → `societies` collection → Add document:
-
-```json
-{
-  "name": "Sunrise Heights",
-  "address": "Plot 12, Sector 5, Pune",
-  "monthlyMaintenance": 2500,
-  "electricityRate": 5.45,
-  "waterRatePerKL": 8
-}
+```bash
+cd /home/runner/work/my-society/my-society
+firebase deploy --only firestore:rules
 ```
-Copy the document ID → set as `societyId` in your user document.
-
-### 9.4 Create Flat documents
-
-Firestore → `flats` collection → Add documents for each flat:
-
-```json
-{
-  "societyId": "YOUR_SOCIETY_ID",
-  "flatNumber": "A-101",
-  "floor": 1,
-  "wing": "A",
-  "area": 850,
-  "status": "occupied"
-}
-```
-
-### 9.5 Create Parking Slots
-
-Firestore → `parkingSlots` → Add documents:
-
-```json
-{
-  "societyId": "YOUR_SOCIETY_ID",
-  "slotNumber": "P-01",
-  "type": "car",
-  "status": "available"
-}
-```
-
----
-
-## Step 10: SendGrid Email Setup (Optional)
-
-1. Sign up at [sendgrid.com](https://sendgrid.com)
-2. Create API key (Mail Send permission)
-3. Set in Cloud Functions: `firebase functions:secrets:set SENDGRID_API_KEY`
-4. Verify your sender email in SendGrid
-5. Update `functions/src/index.js` to import and use `@sendgrid/mail`
-
----
-
-## Step 11: MSG91 SMS Setup
-
-1. Sign up at [msg91.com](https://msg91.com)
-2. Get API key from dashboard
-3. Set: `firebase functions:secrets:set MSG91_API_KEY`
-4. Configure sender ID `MYSOC` in MSG91 dashboard
-5. Get DLT template registration (required in India for transactional SMS)
 
 ---
 
 ## Local Development
 
 ```bash
-# Start React dev server
+cd /home/runner/work/my-society/my-society
 npm run dev
+```
 
-# Start Firebase emulators (separate terminal)
+In another terminal:
+
+```bash
+cd /home/runner/work/my-society/my-society
 firebase emulators:start
-
-# Emulator UI: http://localhost:4000
-# Firestore: http://localhost:8080
-# Auth: http://localhost:9099
-# Functions: http://localhost:5001
 ```
 
 ---
@@ -271,37 +275,18 @@ firebase emulators:start
 ## Deployment Commands Summary
 
 ```bash
-# Full deploy
+cd /home/runner/work/my-society/my-society
 firebase deploy
-
-# Deploy specific services
 firebase deploy --only hosting
 firebase deploy --only functions
 firebase deploy --only firestore:rules
 firebase deploy --only firestore:indexes
-
-# View deployed functions
-firebase functions:list
 ```
 
 ---
 
-## Performance Optimizations
+## Important Notes
 
-1. **Browser caching**: Static data (society info, flats list) cached in memory (`AppContext`) with 5-minute TTL
-2. **Session storage**: User profile cached in `sessionStorage` to avoid Firestore read on page refresh
-3. **Firestore indexes**: All composite queries have matching indexes in `firestore.indexes.json`
-4. **Firebase Hosting CDN**: JS/CSS assets are immutably cached with 1-year max-age
-5. **Code splitting**: Vite automatically code-splits by route
-
----
-
-## Security Checklist
-
-- [x] Firestore security rules deny all unauthenticated access
-- [x] Bills/payments scoped to flat owner/tenant only
-- [x] Admin-only routes (expenses, salaries, users) protected at router AND Firestore rule level
-- [x] FCM tokens stored per-user, not globally broadcast
-- [x] UPI VPA not hardcoded (env variable)
-- [x] No secrets in frontend code
-- [x] Cloud Functions use Firebase Secrets Manager for API keys
+- Keep service-account JSON files outside the repository
+- Do not commit real API keys, device tokens, or production user data
+- Re-run the seed script whenever you need the same sample collection structure in a new Firebase project
