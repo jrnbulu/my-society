@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userSociety() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.societyId;
+    }
+
+    function inSociety(societyId) {
+      return isSignedIn() && userSociety() == societyId;
+    }
+
+    // ── Users ───────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isSignedIn() && (isSelf(uid) || isAdmin());
+      allow create: if isSelf(uid);
+      allow update: if isSelf(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Societies ────────────────────────────────────────────────────────────
+    match /societies/{societyId} {
+      allow read: if inSociety(societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Flats ────────────────────────────────────────────────────────────────
+    match /flats/{flatId} {
+      allow read: if isSignedIn() && inSociety(resource.data.societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Bills ────────────────────────────────────────────────────────────────
+    match /bills/{billId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        (inSociety(resource.data.societyId) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.flatId == resource.data.flatId)
+      );
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Payments ─────────────────────────────────────────────────────────────
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.uid == request.auth.uid
+      );
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
+    }
+
+    // ── Utility Readings ─────────────────────────────────────────────────────
+    match /utilityReadings/{readingId} {
+      allow read: if isSignedIn() && inSociety(resource.data.societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Parking ──────────────────────────────────────────────────────────────
+    match /parkingSlots/{slotId} {
+      allow read: if isSignedIn() && inSociety(resource.data.societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Expenses ─────────────────────────────────────────────────────────────
+    match /expenses/{expId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Salaries ─────────────────────────────────────────────────────────────
+    match /salaries/{salId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ── Meetings ─────────────────────────────────────────────────────────────
+    match /meetings/{meetingId} {
+      allow read: if isSignedIn() && inSociety(resource.data.societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Notices ──────────────────────────────────────────────────────────────
+    match /notices/{noticeId} {
+      allow read: if isSignedIn() && inSociety(resource.data.societyId);
+      allow write: if isAdmin();
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() &&
+        request.auth.uid in resource.data.recipientUids;
+      allow update: if isSignedIn() &&
+        request.auth.uid in resource.data.recipientUids &&
+        request.resource.data.keys().hasOnly(['read']);
+      allow create: if isAdmin();
+    }
+  }
+}
