@@ -5,6 +5,7 @@ import { AppProvider } from "./contexts/AppContext";
 import { PrivateRoute, RoleRoute } from "./components/common/ProtectedRoutes";
 import AppLayout from "./components/common/AppLayout";
 import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import BillingPage from "./pages/BillingPage";
 import PaymentsPage from "./pages/PaymentsPage";
@@ -71,7 +72,6 @@ export default function App() {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/pending-approval" element={<PendingApproval />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
-
               <Route element={<PrivateRoute />}>
                 <Route path="/dashboard" element={<LayoutRoute><DashboardPage /></LayoutRoute>} />
                 <Route path="/billing" element={<LayoutRoute><BillingPage /></LayoutRoute>} />
@@ -90,8 +90,8 @@ export default function App() {
                 </Route>
               </Route>
 
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
         </AppProvider>
