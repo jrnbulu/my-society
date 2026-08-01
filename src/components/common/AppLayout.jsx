@@ -130,7 +130,7 @@ export default function AppLayout({ children }) {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 700 }}>
-            🏘 My Society
+            🏘 My Society{society?.name ? ` · ${society.name}` : ""}
           </Typography>
           <IconButton color="inherit" onClick={() => navigate("/notifications")}>
             <Badge badgeContent={unreadNotifications} color="error">

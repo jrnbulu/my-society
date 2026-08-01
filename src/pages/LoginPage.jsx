@@ -10,11 +10,11 @@ import {
   Alert,
 } from "@mui/material";
 import PhoneIcon from "@mui/icons-material/Phone";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginPage() {
-  const { sendOTP, verifyOTP } = useAuth();
+  const { sendOTP, verifyOTP, currentUser } = useAuth();
   const navigate = useNavigate();
 
   const [phone, setPhone] = useState("");
@@ -22,6 +22,9 @@ export default function LoginPage() {
   const [step, setStep] = useState("phone"); // 'phone' | 'otp'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Redirect already-authenticated users straight to the dashboard
+  if (currentUser) return <Navigate to="/dashboard" replace />;
 
   const formatPhone = (val) => {
     // Ensure +91 prefix for Indian numbers
