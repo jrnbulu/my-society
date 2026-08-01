@@ -1,0 +1,19 @@
+{
+  "name": "my-society-functions",
+  "description": "Firebase Cloud Functions for My Society App",
+  "scripts": {
+    "lint": "eslint .",
+    "build": "echo done",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": { "node": "20" },
+  "main": "src/index.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0",
+    "axios": "^1.7.0"
+  },
+  "private": true
+}
