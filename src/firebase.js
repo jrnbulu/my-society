@@ -15,11 +15,23 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const functions = getFunctions(app, "asia-south1");
-export const storage = getStorage(app);
+export const isFirebaseConfigured = Boolean(
+  import.meta.env.VITE_FIREBASE_API_KEY && import.meta.env.VITE_FIREBASE_PROJECT_ID
+);
+
+let app, auth, db, functions, storage;
+
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  functions = getFunctions(app, "asia-south1");
+  storage = getStorage(app);
+} catch (e) {
+  console.warn("Firebase initialization failed. Running without backend.", e.message);
+}
+
+export { app, auth, db, functions, storage };
 
 export const getMessagingInstance = async () => {
   const supported = await isSupported();

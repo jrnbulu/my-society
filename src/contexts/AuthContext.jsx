@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import { auth, db, isFirebaseConfigured } from "../firebase";
 
 const AuthContext = createContext(null);
 
@@ -36,17 +36,34 @@ export function AuthProvider({ children }) {
     const cached = sessionStorage.getItem("userProfile");
     if (cached) setUserProfile(JSON.parse(cached));
 
+    // If Firebase is not configured, skip auth listener and mark as loaded
+    if (!isFirebaseConfigured || !auth) {
+      setLoading(false);
+      return;
+    }
+
+    // Safety timeout — if auth state takes too long, unblock the UI
+    const timeout = setTimeout(() => setLoading(false), 5000);
+
     const unsub = onAuthStateChanged(auth, async (user) => {
+      clearTimeout(timeout);
       setCurrentUser(user);
       if (user) {
-        await fetchUserProfile(user.uid);
+        try {
+          await fetchUserProfile(user.uid);
+        } catch {
+          // Firestore may be unavailable; continue without profile
+        }
       } else {
         setUserProfile(null);
         sessionStorage.removeItem("userProfile");
       }
       setLoading(false);
     });
-    return unsub;
+    return () => {
+      clearTimeout(timeout);
+      unsub();
+    };
   }, []);
 
   // ── Send OTP ───────────────────────────────────────────────────────────────
